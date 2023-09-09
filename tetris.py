@@ -170,6 +170,9 @@ class MyGame(arcade.Window):
         self.stone_y = 0
 
         if check_collision(self.board, self.stone, (self.stone_x, self.stone_y)):
+            self.sound.stop(self.player)
+            self.player = None
+            self.stone = None
             self.game_over = True
 
     def setup(self):
