@@ -31,7 +31,7 @@ SCREEN_HEIGHT = (HEIGHT + CELL_MARGIN) * ROW_COUNT + BORDER_MARGIN
 SCREEN_TITLE = "Tetris"
 
 # Speed of the blocks falling down
-SPEED = 20
+SPEED = 60
 
 COLORS = [
     (0,   0,   0, 255),  # black
@@ -134,11 +134,27 @@ class MyGame(arcade.Window):
 
         arcade.set_background_color(arcade.color.BLACK)
 
+        self.sound = arcade.Sound("./Tetris.wav", False)
+        self.player = None
+
         self.board = None
         self.frame_count = 0
         self.game_over = False
         self.paused = False
         self.board_sprite_list = None
+        self.score = 0
+
+        self.stone = None
+        self.stone_x = 0
+        self.stone_y = 0
+
+    def reset(self):
+        self.board = None
+        self.frame_count = 0
+        self.game_over = False
+        self.paused = False
+        self.board_sprite_list = None
+        self.score = 0
 
         self.stone = None
         self.stone_x = 0
@@ -174,6 +190,8 @@ class MyGame(arcade.Window):
 
                 self.board_sprite_list.append(sprite)
 
+        self.player = self.sound.play(volume=1.0, loop=True)
+
         self.new_stone()
         self.update_board()
 
@@ -191,13 +209,26 @@ class MyGame(arcade.Window):
             self.stone_y += 1
             if check_collision(self.board, self.stone, (self.stone_x, self.stone_y)):
                 self.board = join_matrix(self.board, self.stone, (self.stone_x, self.stone_y))
+
+                rows_removed = 0
+
                 while True:
                     for i, row in enumerate(self.board[:-1]):
                         if 0 not in row:
                             self.board = remove_row(self.board, i)
+                            rows_removed += 1
                             break
                     else:
                         break
+
+                self.score += rows_removed * 10
+
+                if rows_removed == 4:
+                    self.score += 10
+
+                if rows_removed:
+                    print(f"Score: %s", self.score)
+
                 self.update_board()
                 self.new_stone()
 
@@ -254,7 +285,16 @@ class MyGame(arcade.Window):
         elif key == arcade.key.DOWN:
             self.drop()
         elif key == arcade.key.ESCAPE:
-            self.paused = not self.paused
+            if self.game_over:
+                self.reset()
+                self.setup()
+            else:
+                if self.paused:
+                    self.player = self.sound.play(volume=1.0, loop=True)
+                    self.paused = False
+                else:
+                    self.sound.stop(self.player)
+                    self.paused = True
         elif key == arcade.key.SPACE:
             self.drop_to_bottom()
 
