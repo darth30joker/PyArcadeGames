@@ -8,8 +8,10 @@ If Python and Arcade are installed, this example can be run from the command lin
 python -m arcade.examples.tetris
 """
 # flake8: noqa: E241
-import arcade
 import random
+import time
+
+import arcade
 import PIL
 
 # Set how many rows and columns we will have
@@ -26,7 +28,8 @@ BORDER_MARGIN = 5
 CELL_MARGIN = 2
 
 # Do the math to figure out our screen dimensions
-SCREEN_WIDTH = (WIDTH + CELL_MARGIN) * COLUMN_COUNT + BORDER_MARGIN
+MAIN_BOARD_WIDTH = (WIDTH + CELL_MARGIN) * COLUMN_COUNT + BORDER_MARGIN
+SCREEN_WIDTH = MAIN_BOARD_WIDTH + 4 * (WIDTH + CELL_MARGIN) + BORDER_MARGIN
 SCREEN_HEIGHT = (HEIGHT + CELL_MARGIN) * ROW_COUNT + BORDER_MARGIN
 SCREEN_TITLE = "Tetris"
 
@@ -124,7 +127,16 @@ def new_board():
     return board
 
 
-class MyGame(arcade.Window):
+def convert_time_to_string(time_in_sec):
+    minutes = time_in_sec // 60
+    seconds = time_in_sec % 60
+    hours = minutes // 60
+    minutes = minutes % 60
+
+    return "{:02d}:{:02d}:{:02d}".format(int(hours), int(minutes), int(seconds))
+
+
+class MyTetris(arcade.Window):
     """ Main application class. """
 
     def __init__(self, width, height, title):
@@ -134,7 +146,7 @@ class MyGame(arcade.Window):
 
         arcade.set_background_color(arcade.color.BLACK)
 
-        self.sound = arcade.Sound("./Tetris.wav", False)
+        self.sound = arcade.Sound("Tetris.wav", False)
         self.player = None
 
         self.board = None
@@ -142,7 +154,10 @@ class MyGame(arcade.Window):
         self.game_over = False
         self.paused = False
         self.board_sprite_list = None
+        self.next_stone = random.choice(TETRIS_SHAPES)
         self.score = 0
+        self.last_time_lapsed = 0
+        self.start_time = time.time()
 
         self.stone = None
         self.stone_x = 0
@@ -165,7 +180,7 @@ class MyGame(arcade.Window):
         Randomly grab a new stone and set the stone location to the top.
         If we immediately collide, then game-over.
         """
-        self.stone = random.choice(TETRIS_SHAPES)
+        self.stone = self.next_stone
         self.stone_x = int(COLUMN_COUNT / 2 - len(self.stone[0]) / 2)
         self.stone_y = 0
 
@@ -174,6 +189,8 @@ class MyGame(arcade.Window):
             self.player = None
             self.stone = None
             self.game_over = True
+
+        self.next_stone = random.choice(TETRIS_SHAPES)
 
     def setup(self):
         self.board = new_board()
@@ -193,7 +210,7 @@ class MyGame(arcade.Window):
 
                 self.board_sprite_list.append(sprite)
 
-        self.player = self.sound.play(volume=1.0, loop=True)
+        self.player = self.sound.play(volume=0.5, loop=True)
 
         self.new_stone()
         self.update_board()
@@ -226,11 +243,10 @@ class MyGame(arcade.Window):
 
                 self.score += rows_removed * 10
 
-                if rows_removed == 4:
+                if rows_removed == 3:
+                    self.score += 5
+                elif rows_removed == 4:
                     self.score += 10
-
-                if rows_removed:
-                    print(f"Score: %s", self.score)
 
                 self.update_board()
                 self.new_stone()
@@ -271,6 +287,20 @@ class MyGame(arcade.Window):
             if not check_collision(self.board, self.stone, (new_x, self.stone_y)):
                 self.stone_x = new_x
 
+    def pause(self):
+        if self.game_over:
+            self.reset()
+            self.setup()
+        else:
+            if self.paused:
+                self.start_time = time.time()
+                self.player = self.sound.play(volume=0.5, loop=True)
+                self.paused = False
+            else:
+                self.last_time_lapsed += time.time() - self.start_time
+                self.sound.stop(self.player)
+                self.paused = True
+
     def on_key_press(self, key, modifiers):
         """
         Handle user key presses
@@ -288,16 +318,7 @@ class MyGame(arcade.Window):
         elif key == arcade.key.DOWN:
             self.drop()
         elif key == arcade.key.ESCAPE:
-            if self.game_over:
-                self.reset()
-                self.setup()
-            else:
-                if self.paused:
-                    self.player = self.sound.play(volume=1.0, loop=True)
-                    self.paused = False
-                else:
-                    self.sound.stop(self.player)
-                    self.paused = True
+            self.pause()
         elif key == arcade.key.SPACE:
             self.drop_to_bottom()
 
@@ -320,6 +341,54 @@ class MyGame(arcade.Window):
                     # Draw the box
                     arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
+        # this block is to draw the next stone
+        for row in range(len(self.next_stone)):
+            for column in range(len(self.next_stone[0])):
+                if self.next_stone[row][column]:
+                    color = COLORS[self.next_stone[row][column]]
+                    # Do the math to figure out where the box is
+                    x = MAIN_BOARD_WIDTH + column * (CELL_MARGIN + WIDTH) + WIDTH // 2 + CELL_MARGIN
+                    y = SCREEN_HEIGHT - (row + 1) * (CELL_MARGIN + HEIGHT) + BORDER_MARGIN
+
+                    # Draw the box
+                    arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+
+    def draw_score(self):
+        width = 4 * (CELL_MARGIN + WIDTH) - BORDER_MARGIN
+
+        x = MAIN_BOARD_WIDTH + BORDER_MARGIN
+        y = SCREEN_HEIGHT - 5 * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("SCORE", x, y, arcade.color.WHITE, 20, width=width)
+
+        y = SCREEN_HEIGHT - 6 * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text(self.score, x, y, arcade.color.WHITE, 20, width=width, align="right")
+
+    def draw_time(self):
+        width = 4 * (CELL_MARGIN + WIDTH) - BORDER_MARGIN
+
+        x = MAIN_BOARD_WIDTH + BORDER_MARGIN
+        y = SCREEN_HEIGHT - 8 * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("TIME", x, y, arcade.color.WHITE, 20, width=width)
+
+        y = SCREEN_HEIGHT - 9 * (CELL_MARGIN + HEIGHT)
+
+        if self.paused:
+            time_lapsed = self.last_time_lapsed
+        else:
+            time_lapsed = time.time() - self.start_time + self.last_time_lapsed
+        arcade.draw_text(
+            convert_time_to_string(time_lapsed), x, y, arcade.color.WHITE, 20, width=width, align="right")
+
+    def draw_pause(self):
+        if self.paused:
+            current_time = int(time.time())
+            if current_time % 2 == 0:
+                width = 4 * (CELL_MARGIN + WIDTH) - BORDER_MARGIN
+
+                x = MAIN_BOARD_WIDTH + BORDER_MARGIN
+                y = SCREEN_HEIGHT - 13 * (CELL_MARGIN + HEIGHT)
+                arcade.draw_text("PAUSED", x, y, arcade.color.WHITE, 20, width=width, align="center")
+
     def update_board(self):
         """
         Update the sprite list to reflect the contents of the 2d grid
@@ -337,11 +406,14 @@ class MyGame(arcade.Window):
         self.clear()
         self.board_sprite_list.draw()
         self.draw_grid(self.stone, self.stone_x, self.stone_y)
+        self.draw_score()
+        self.draw_time()
+        self.draw_pause()
 
 
 def main():
     """ Create the game window, setup, run """
-    my_game = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+    my_game = MyTetris(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
     my_game.setup()
     arcade.run()
 
