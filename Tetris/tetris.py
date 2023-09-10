@@ -35,6 +35,7 @@ SCREEN_TITLE = "Tetris"
 
 # Speed of the blocks falling down
 SPEED = 60
+SPEED_BOOST = 200
 
 COLORS = [
     (0,   0,   0, 255),  # black
@@ -44,7 +45,8 @@ COLORS = [
     (255, 120, 0, 255),  # orange
     (255, 255, 0, 255),  # yellow
     (180, 0,   255, 255),  # purple
-    (0,   220, 220, 255)  # light blue
+    (0,   220, 220, 255),  # light blue
+    (150, 150, 150, 255)  # black
 ]
 
 # Define the shapes of the single parts
@@ -123,7 +125,7 @@ def new_board():
     # Create the main board of 0's
     board = [[0 for _x in range(COLUMN_COUNT)] for _y in range(ROW_COUNT)]
     # Add a bottom border of 1's
-    board += [[1 for _x in range(COLUMN_COUNT)]]
+    board += [[8 for _x in range(COLUMN_COUNT)]]
     return board
 
 
@@ -272,8 +274,12 @@ class MyTetris(arcade.Window):
 
     def on_update(self, dt):
         """ Update, drop stone if warrented """
+        speed = SPEED - 2 * (self.score // SPEED_BOOST)
+        if speed < 10:
+            speed = 10
+
         self.frame_count += 1
-        if self.frame_count % SPEED == 0:
+        if self.frame_count % speed == 0:
             self.drop()
 
     def move(self, delta_x):
@@ -341,7 +347,7 @@ class MyTetris(arcade.Window):
                     # Draw the box
                     arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
-        # this block is to draw the next stone
+        # Draw the next stone
         for row in range(len(self.next_stone)):
             for column in range(len(self.next_stone[0])):
                 if self.next_stone[row][column]:
@@ -357,20 +363,20 @@ class MyTetris(arcade.Window):
         width = 4 * (CELL_MARGIN + WIDTH) - BORDER_MARGIN
 
         x = MAIN_BOARD_WIDTH + BORDER_MARGIN
-        y = SCREEN_HEIGHT - 5 * (CELL_MARGIN + HEIGHT)
+        y = SCREEN_HEIGHT - 4 * (CELL_MARGIN + HEIGHT)
         arcade.draw_text("SCORE", x, y, arcade.color.WHITE, 20, width=width)
 
-        y = SCREEN_HEIGHT - 6 * (CELL_MARGIN + HEIGHT)
+        y = SCREEN_HEIGHT - 5 * (CELL_MARGIN + HEIGHT)
         arcade.draw_text(self.score, x, y, arcade.color.WHITE, 20, width=width, align="right")
 
     def draw_time(self):
         width = 4 * (CELL_MARGIN + WIDTH) - BORDER_MARGIN
 
         x = MAIN_BOARD_WIDTH + BORDER_MARGIN
-        y = SCREEN_HEIGHT - 8 * (CELL_MARGIN + HEIGHT)
+        y = SCREEN_HEIGHT - 7 * (CELL_MARGIN + HEIGHT)
         arcade.draw_text("TIME", x, y, arcade.color.WHITE, 20, width=width)
 
-        y = SCREEN_HEIGHT - 9 * (CELL_MARGIN + HEIGHT)
+        y = SCREEN_HEIGHT - 8 * (CELL_MARGIN + HEIGHT)
 
         if self.paused:
             time_lapsed = self.last_time_lapsed
@@ -386,8 +392,52 @@ class MyTetris(arcade.Window):
                 width = 4 * (CELL_MARGIN + WIDTH) - BORDER_MARGIN
 
                 x = MAIN_BOARD_WIDTH + BORDER_MARGIN
-                y = SCREEN_HEIGHT - 13 * (CELL_MARGIN + HEIGHT)
-                arcade.draw_text("PAUSED", x, y, arcade.color.WHITE, 20, width=width, align="center")
+                y = SCREEN_HEIGHT - 10 * (CELL_MARGIN + HEIGHT)
+                arcade.draw_text("PAUSED", x, y, arcade.color.RED, 20, width=width, align="center")
+
+    def draw_help(self):
+        width = 4 * (CELL_MARGIN + WIDTH) - BORDER_MARGIN
+        x = MAIN_BOARD_WIDTH + BORDER_MARGIN
+
+        label_font_size = 15
+        text_font_size = 13
+        row = 12
+        label_color = arcade.color.GREEN
+
+        y = SCREEN_HEIGHT - row * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("UP:", x, y, label_color, label_font_size, width=width)
+        y = SCREEN_HEIGHT - (row + 1) * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("ROTATE", x, y, arcade.color.WHITE, text_font_size, width=width, align="right")
+
+        row += 2
+        y = SCREEN_HEIGHT - row * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("LEFT:", x, y, label_color, label_font_size, width=width)
+        y = SCREEN_HEIGHT - (row + 1) * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("MOVE LEFT", x, y, arcade.color.WHITE, text_font_size, width=width, align="right")
+
+        row += 2
+        y = SCREEN_HEIGHT - row * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("RIGHT:", x, y, label_color, label_font_size, width=width)
+        y = SCREEN_HEIGHT - (row + 1) * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("MOVE RIGHT", x, y, arcade.color.WHITE, text_font_size, width=width, align="right")
+
+        row += 2
+        y = SCREEN_HEIGHT - row * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("DOWN:", x, y, label_color, label_font_size, width=width)
+        y = SCREEN_HEIGHT - (row + 1) * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("MOVE DOWN", x, y, arcade.color.WHITE, text_font_size, width=width, align="right")
+
+        row += 2
+        y = SCREEN_HEIGHT - row * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("SPACE:", x, y, label_color, label_font_size, width=width)
+        y = SCREEN_HEIGHT - (row + 1) * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("DROP", x, y, arcade.color.WHITE, text_font_size, width=width, align="right")
+
+        row += 2
+        y = SCREEN_HEIGHT - row * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("ESC:", x, y, label_color, label_font_size, width=width)
+        y = SCREEN_HEIGHT - (row + 1) * (CELL_MARGIN + HEIGHT)
+        arcade.draw_text("PAUSE", x, y, arcade.color.WHITE, text_font_size, width=width, align="right")
 
     def update_board(self):
         """
@@ -409,6 +459,7 @@ class MyTetris(arcade.Window):
         self.draw_score()
         self.draw_time()
         self.draw_pause()
+        self.draw_help()
 
 
 def main():
