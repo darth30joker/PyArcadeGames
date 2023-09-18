@@ -35,18 +35,18 @@ SCREEN_TITLE = "Tetris"
 
 # Speed of the blocks falling down
 SPEED = 60
-SPEED_BOOST = 200
+SPEED_BOOST = 150
 
 COLORS = [
-    (0,   0,   0, 255),  # black
-    (255, 0,   0, 255),  # red
-    (0,   150, 0, 255),  # green
+    (0,   0,   0,   255),  # black
+    (255, 0,   0,   255),  # red
+    (0,   150, 0,   255),  # green
     (0,   0,   255, 255),  # blue
-    (255, 120, 0, 255),  # orange
-    (255, 255, 0, 255),  # yellow
+    (255, 120, 0,   255),  # orange
+    (255, 255, 0,   255),  # yellow
     (180, 0,   255, 255),  # purple
     (0,   220, 220, 255),  # light blue
-    (150, 150, 150, 255)  # black
+    (150, 150, 150, 255)   # black
 ]
 
 # Define the shapes of the single parts
