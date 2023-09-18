@@ -40,6 +40,26 @@ COLORS = [
 ]
 
 
+RIGHT = "RIGHT"
+LEFT = "LEFT"
+UP = "UP"
+DOWN = "DOWN"
+
+ALLOWED_DIRECTIONS = {
+    RIGHT: [UP, DOWN],
+    LEFT: [UP, DOWN],
+    UP: [LEFT, RIGHT],
+    DOWN: [LEFT, RIGHT]
+}
+
+DIRECTIONS = {
+    RIGHT: (0, 1),
+    LEFT: (0, -1),
+    UP: (-1, 0),
+    DOWN: (1, 0)
+}
+
+
 class Snake(object):
     def __init__(self):
         self.coordinates = [(0, 2), (0, 1), (0, 0)]
@@ -50,6 +70,22 @@ class Snake(object):
 
         head = self.coordinates[0]
         self.coordinates.insert(0, (head[0] + y, head[1] + x))
+
+    def eat(self, dot):
+        self.coordinates.append(dot.coordinate)
+        self.colors.append(dot.color)
+
+
+class Dot(object):
+    def __init__(self):
+        self.coordinate = None
+        self.color = None
+
+        self.refresh()
+
+    def refresh(self):
+        self.coordinate = (random.randint(0, ROW_COUNT - 1), random.randint(0, COLUMN_COUNT - 1))
+        self.color = random.randint(1, 8)
 
 
 class MySnake(arcade.Window):
@@ -68,6 +104,8 @@ class MySnake(arcade.Window):
         self.paused = False
         self.board_sprite_list = None
         self.snake = Snake()
+        self.direction = RIGHT
+        self.dot = None
 
     def setup(self):
         self.board = [[0 for i in range(COLUMN_COUNT)] for i in range(ROW_COUNT)]
@@ -93,6 +131,7 @@ class MySnake(arcade.Window):
                 self.board_sprite_list.append(sprite)
 
         self.update_board()
+        self.dot = Dot()
 
     def update_board(self):
         """
@@ -111,6 +150,7 @@ class MySnake(arcade.Window):
         self.clear()
         self.board_sprite_list.draw()
         self.draw_snake()
+        self.draw_dot()
 
     def on_update(self, dt):
         self.frame_count += 1
@@ -126,10 +166,18 @@ class MySnake(arcade.Window):
             x = (CELL_MARGIN + WIDTH) * offset_x + BORDER_MARGIN + WIDTH // 2
             y = SCREEN_HEIGHT - (CELL_MARGIN + HEIGHT) * offset_y + BORDER_MARGIN + HEIGHT // 2
 
-            print(f"x={x}, y={y}, color={color}")
+            # print(f"x={x}, y={y}, color={color}")
 
             # Draw the box
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+
+    def draw_dot(self):
+        offset_y, offset_x = self.dot.coordinate
+
+        x = (CELL_MARGIN + WIDTH) * offset_x + BORDER_MARGIN + WIDTH // 2
+        y = SCREEN_HEIGHT - (CELL_MARGIN + HEIGHT) * offset_y + BORDER_MARGIN + HEIGHT // 2
+
+        arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, COLORS[self.dot.color])
 
     def move(self, y, x):
         if self.check_collision(y, x):
@@ -139,7 +187,12 @@ class MySnake(arcade.Window):
 
     def drop(self):
         if not self.game_over and not self.paused:
-            self.snake.move(0, 1)
+            y, x = DIRECTIONS[self.direction]
+
+            if self.check_collision(y, x):
+                self.game_over = True
+
+            self.snake.move(y, x)
             self.update_board()
 
     def check_collision(self, y, x):
@@ -147,32 +200,46 @@ class MySnake(arcade.Window):
         new_head = (head[0] + y, head[1] + x)
 
         if new_head in self.snake.coordinates:
-            return True
+            self.game_over = True
 
         if new_head[0] < 0 or new_head[0] > ROW_COUNT:
-            return True
+            self.game_over = True
 
         if new_head[1] < 0 or new_head[1] > COLUMN_COUNT:
-            return True
+            self.game_over = True
+
+        if new_head == self.dot.coordinate:
+            self.snake.eat(self.dot)
+            self.dot.refresh()
 
         return False
 
+    def generate_dot(self):
+        while True:
+            dot = (random.randint(0, ROW_COUNT - 1), random.randint(0, COLUMN_COUNT - 1))
+
+            if dot not in self.snake.coordinates:
+                break
+
+        self.dot = dot
+
     def on_key_press(self, key, modifiers):
-        """
-        Handle user key presses
-        User goes left, move -1
-        User goes right, move 1
-        Rotate stone,
-        or drop down
-        """
         if key == arcade.key.LEFT:
-            self.move(0, -1)
+            if LEFT in ALLOWED_DIRECTIONS[self.direction]:
+                self.move(0, -1)
+                self.direction = LEFT
         elif key == arcade.key.RIGHT:
-            self.move(0, 1)
+            if RIGHT in ALLOWED_DIRECTIONS[self.direction]:
+                self.move(0, 1)
+                self.direction = RIGHT
         elif key == arcade.key.UP:
-            self.move(-1, 0)
+            if UP in ALLOWED_DIRECTIONS[self.direction]:
+                self.move(-1, 0)
+                self.direction = UP
         elif key == arcade.key.DOWN:
-            self.move(1, 0)
+            if DOWN in ALLOWED_DIRECTIONS[self.direction]:
+                self.move(1, 0)
+                self.direction = DOWN
         elif key == arcade.key.ESCAPE:
             self.paused = not self.paused
 
