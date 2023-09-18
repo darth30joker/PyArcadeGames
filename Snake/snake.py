@@ -45,11 +45,11 @@ class Snake(object):
         self.coordinates = [(0, 2), (0, 1), (0, 0)]
         self.colors = [random.randint(1, 8) for i in range(3)]
 
-    def move(self):
+    def move(self, y, x):
         self.coordinates.pop()
 
         head = self.coordinates[0]
-        self.coordinates.insert(0, (head[0], head[1] + 1))
+        self.coordinates.insert(0, (head[0] + y, head[1] + x))
 
 
 class MySnake(arcade.Window):
@@ -131,10 +131,50 @@ class MySnake(arcade.Window):
             # Draw the box
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
+    def move(self, y, x):
+        if self.check_collision(y, x):
+            self.game_over = True
+
+        self.snake.move(y, x)
+
     def drop(self):
         if not self.game_over and not self.paused:
-            self.snake.move()
+            self.snake.move(0, 1)
             self.update_board()
+
+    def check_collision(self, y, x):
+        head = self.snake.coordinates[0]
+        new_head = (head[0] + y, head[1] + x)
+
+        if new_head in self.snake.coordinates:
+            return True
+
+        if new_head[0] < 0 or new_head[0] > ROW_COUNT:
+            return True
+
+        if new_head[1] < 0 or new_head[1] > COLUMN_COUNT:
+            return True
+
+        return False
+
+    def on_key_press(self, key, modifiers):
+        """
+        Handle user key presses
+        User goes left, move -1
+        User goes right, move 1
+        Rotate stone,
+        or drop down
+        """
+        if key == arcade.key.LEFT:
+            self.move(0, -1)
+        elif key == arcade.key.RIGHT:
+            self.move(0, 1)
+        elif key == arcade.key.UP:
+            self.move(-1, 0)
+        elif key == arcade.key.DOWN:
+            self.move(1, 0)
+        elif key == arcade.key.ESCAPE:
+            self.paused = not self.paused
 
 
 def main():
