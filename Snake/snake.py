@@ -24,7 +24,7 @@ SCREEN_HEIGHT = (HEIGHT + CELL_MARGIN) * ROW_COUNT + BORDER_MARGIN
 SCREEN_TITLE = "SNAKE"
 
 # Speed of the blocks falling down
-SPEED = 60
+SPEED = 10
 SPEED_BOOST = 200
 
 COLORS = [
@@ -126,7 +126,7 @@ class MySnake(arcade.Window):
 
                 sprite.set_texture(0)
                 sprite.center_x = (CELL_MARGIN + WIDTH) * column + BORDER_MARGIN + WIDTH // 2
-                sprite.center_y = SCREEN_HEIGHT - (CELL_MARGIN + HEIGHT) * row + BORDER_MARGIN + HEIGHT // 2
+                sprite.center_y = SCREEN_HEIGHT - (CELL_MARGIN + HEIGHT) * (row + 1) + HEIGHT // 2
 
                 self.board_sprite_list.append(sprite)
 
@@ -154,46 +154,38 @@ class MySnake(arcade.Window):
 
     def on_update(self, dt):
         self.frame_count += 1
+
         if self.frame_count % SPEED == 0:
-            self.drop()
+            self.move()
 
     def draw_snake(self):
         for i in range(len(self.snake.coordinates)):
             offset_y, offset_x = self.snake.coordinates[i]
             color = COLORS[self.snake.colors[i]]
 
-            # Do the math to figure out where the box is
             x = (CELL_MARGIN + WIDTH) * offset_x + BORDER_MARGIN + WIDTH // 2
-            y = SCREEN_HEIGHT - (CELL_MARGIN + HEIGHT) * offset_y + BORDER_MARGIN + HEIGHT // 2
+            y = SCREEN_HEIGHT - (CELL_MARGIN + HEIGHT) * (offset_y + 1) + BORDER_MARGIN + HEIGHT // 2
 
-            # print(f"x={x}, y={y}, color={color}")
-
-            # Draw the box
             arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
     def draw_dot(self):
         offset_y, offset_x = self.dot.coordinate
 
         x = (CELL_MARGIN + WIDTH) * offset_x + BORDER_MARGIN + WIDTH // 2
-        y = SCREEN_HEIGHT - (CELL_MARGIN + HEIGHT) * offset_y + BORDER_MARGIN + HEIGHT // 2
+        y = SCREEN_HEIGHT - (CELL_MARGIN + HEIGHT) * (offset_y + 1) + BORDER_MARGIN + HEIGHT // 2
 
         arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, COLORS[self.dot.color])
 
-    def move(self, y, x):
-        if self.check_collision(y, x):
-            self.game_over = True
-
-        self.snake.move(y, x)
-
-    def drop(self):
+    def move(self):
         if not self.game_over and not self.paused:
             y, x = DIRECTIONS[self.direction]
 
             if self.check_collision(y, x):
                 self.game_over = True
 
-            self.snake.move(y, x)
-            self.update_board()
+            if not self.game_over:
+                self.snake.move(y, x)
+                self.update_board()
 
     def check_collision(self, y, x):
         head = self.snake.coordinates[0]
@@ -202,10 +194,10 @@ class MySnake(arcade.Window):
         if new_head in self.snake.coordinates:
             self.game_over = True
 
-        if new_head[0] < 0 or new_head[0] > ROW_COUNT:
+        if new_head[0] < 0 or new_head[0] > ROW_COUNT - 1:
             self.game_over = True
 
-        if new_head[1] < 0 or new_head[1] > COLUMN_COUNT:
+        if new_head[1] < 0 or new_head[1] > COLUMN_COUNT - 1:
             self.game_over = True
 
         if new_head == self.dot.coordinate:
@@ -226,19 +218,15 @@ class MySnake(arcade.Window):
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT:
             if LEFT in ALLOWED_DIRECTIONS[self.direction]:
-                self.move(0, -1)
                 self.direction = LEFT
         elif key == arcade.key.RIGHT:
             if RIGHT in ALLOWED_DIRECTIONS[self.direction]:
-                self.move(0, 1)
                 self.direction = RIGHT
         elif key == arcade.key.UP:
             if UP in ALLOWED_DIRECTIONS[self.direction]:
-                self.move(-1, 0)
                 self.direction = UP
         elif key == arcade.key.DOWN:
             if DOWN in ALLOWED_DIRECTIONS[self.direction]:
-                self.move(1, 0)
                 self.direction = DOWN
         elif key == arcade.key.ESCAPE:
             self.paused = not self.paused
